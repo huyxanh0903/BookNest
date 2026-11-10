@@ -16,7 +16,14 @@
             <li class="nav-item"><a class="nav-link active" aria-current="page" th:href="@{/index}">Home</a></li>
             <li class="nav-item"><a class="nav-link" th:href="@{/book}">Books</a></li>
             <li class="nav-item" th:if="${isAdmin}"><a class="nav-link" th:href="@{/categories}">Categories</a></li>
-            <li class="nav-item ms-md-3"><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></li>
+            <li class="nav-item ms-md-3" th:if="${currentUser != null}">
+                <span class="site-nav-user">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="opacity: .75;"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/></svg>
+                    <span th:text="${currentUser.username}">User</span>
+                    <span th:if="${isAdmin}" class="badge bg-warning text-dark user-role">Admin</span>
+                </span>
+            </li>
+            <li class="nav-item ms-md-1"><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></li>
         </ul></div>
     </div>
 </nav>
@@ -36,7 +43,7 @@
     <section aria-labelledby="toolsHeading" class="pb-4">
         <h2 id="toolsHeading" class="home-section-heading">Catalog tools</h2>
         <a class="home-link-row" th:href="@{/book}">
-            <span><span class="home-link-title">Book records</span><span class="home-link-copy">Browse, add, and maintain the books in your catalog.</span></span>
+            <span><span class="home-link-title">Your Book</span><span class="home-link-copy">Browse, add, and maintain the books in your catalog.</span></span>
             <span class="home-link-action">Open records</span>
         </a>
         <a class="home-link-row" th:href="@{/categories}" th:if="${isAdmin}">

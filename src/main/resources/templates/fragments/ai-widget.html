@@ -3,8 +3,30 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.8A2.8 2.8 0 0 1 7.8 2H20v16H7.8A2.8 2.8 0 0 0 5 20.8V4.8Z"/><path d="M5 5v16m4-14h7m-7 4h7"/></svg>
     </button>
     <section class="ai-widget-panel" id="aiWidgetPanel" aria-label="BookNest AI chat" hidden>
-        <header class="ai-widget-header"><div><span class="ai-widget-eyebrow">BOOKNEST ASSISTANT</span><strong>Quick chat</strong><small>Uses your book catalog details</small></div><button id="aiWidgetClose" class="ai-widget-close" type="button" aria-label="Close chat">×</button></header>
-        <div class="ai-widget-messages" id="aiWidgetMessages" aria-live="polite"><div class="ai-widget-welcome">Hi! What would you like to ask?</div></div>
+        <header class="ai-widget-header">
+            <div>
+                <span class="ai-widget-eyebrow">BOOKNEST ASSISTANT</span>
+                <strong>Quick chat</strong>
+                <small id="widgetModeSubtitle">📚 Catalog mode: Uses your personal book records</small>
+            </div>
+            <button id="aiWidgetClose" class="ai-widget-close" type="button" aria-label="Close chat">×</button>
+        </header>
+
+        <!-- RAG Mode Selector -->
+        <div class="p-2 border-bottom bg-light d-flex align-items-center justify-content-between" style="font-size: 0.8rem;">
+            <span class="text-secondary fw-semibold">Mode:</span>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="widgetRag" id="widgetRagOn" value="true" checked autocomplete="off">
+                <label class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;" for="widgetRagOn" title="Only search and answer from books in your catalog">📚 Catalog (RAG ON)</label>
+
+                <input type="radio" class="btn-check" name="widgetRag" id="widgetRagOff" value="false" autocomplete="off">
+                <label class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" for="widgetRagOff" title="Ask general book, literature, and author questions">🌐 General (RAG OFF)</label>
+            </div>
+        </div>
+
+        <div class="ai-widget-messages" id="aiWidgetMessages" aria-live="polite">
+            <div class="ai-widget-welcome">Hi! Ask me anything about your books or literature in general.</div>
+        </div>
         <form id="aiWidgetForm" class="ai-widget-form" th:action="@{/ai/chat/ask}" method="post">
             <label class="visually-hidden" for="aiWidgetInput">Message</label><textarea id="aiWidgetInput" name="message" rows="2" maxlength="20000" placeholder="Type a message…" required></textarea>
             <button type="submit" aria-label="Send message">Send <span aria-hidden="true">↑</span></button>
@@ -18,27 +40,73 @@
             const form = document.getElementById('aiWidgetForm');
             const input = document.getElementById('aiWidgetInput');
             const messages = document.getElementById('aiWidgetMessages');
+            const subtitle = document.getElementById('widgetModeSubtitle');
+            const ragOn = document.getElementById('widgetRagOn');
+            const ragOff = document.getElementById('widgetRagOff');
+
+            const updateSubtitle = () => {
+                if (ragOn.checked) {
+                    subtitle.textContent = '📚 Catalog mode: Uses your personal book records';
+                } else {
+                    subtitle.textContent = '🌐 General mode: Wide book & literature knowledge';
+                }
+            };
+            ragOn.addEventListener('change', updateSubtitle);
+            ragOff.addEventListener('change', updateSubtitle);
+
             const show = (open) => { panel.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); if (open) input.focus(); };
             toggle.addEventListener('click', () => show(panel.hidden));
             close.addEventListener('click', () => show(false));
-            const addMessage = (text, kind) => { const bubble = document.createElement('div'); bubble.className = `ai-widget-bubble ${kind}`; bubble.textContent = text; messages.appendChild(bubble); messages.scrollTop = messages.scrollHeight; return bubble; };
+            const addMessage = (text, kind, badgeText) => {
+                const bubble = document.createElement('div');
+                bubble.className = `ai-widget-bubble ${kind}`;
+                if (badgeText) {
+                    const badge = document.createElement('div');
+                    badge.style.fontSize = '0.7rem';
+                    badge.style.fontWeight = 'bold';
+                    badge.style.marginBottom = '3px';
+                    badge.style.opacity = '0.75';
+                    badge.textContent = badgeText;
+                    bubble.appendChild(badge);
+                }
+                const content = document.createElement('div');
+                content.textContent = text;
+                bubble.appendChild(content);
+                messages.appendChild(bubble);
+                messages.scrollTop = messages.scrollHeight;
+                return bubble;
+            };
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const text = input.value.trim();
                 if (!text) return;
-                addMessage(text, 'from-user'); input.value = '';
-                const pending = addMessage('Thinking…', 'from-ai');
+                const isRag = ragOn.checked;
+                addMessage(text, 'from-user');
+                input.value = '';
+                const pending = addMessage('Thinking…', 'from-ai', isRag ? '📚 Catalog' : '🌐 General');
                 const button = form.querySelector('button'); button.disabled = true;
                 try {
                     const body = new URLSearchParams();
                     const csrf = form.querySelector('input[name="_csrf"]');
                     if (csrf) body.set('_csrf', csrf.value);
                     body.set('message', text);
+                    body.set('useRag', isRag ? 'true' : 'false');
                     const response = await fetch(form.action, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                     const result = await response.json();
-                    pending.textContent = result.answer || result.error || 'The AI request failed.';
-                } catch (_) { pending.textContent = 'Could not connect to the AI provider. Check the app logs and provider settings.'; }
-                finally { button.disabled = false; input.focus(); }
+                    const answerText = result.answer || result.error || 'The AI request failed.';
+                    const lastDiv = pending.lastElementChild;
+                    if (lastDiv) lastDiv.textContent = answerText;
+                    else pending.textContent = answerText;
+                } catch (_) {
+                    const lastDiv = pending.lastElementChild;
+                    const err = 'Could not connect to the AI provider. Check the app logs and provider settings.';
+                    if (lastDiv) lastDiv.textContent = err;
+                    else pending.textContent = err;
+                } finally {
+                    button.disabled = false;
+                    input.focus();
+                }
             });
         })();
     </script>

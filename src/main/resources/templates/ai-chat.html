@@ -8,16 +8,77 @@
     <link href="/css/booknest.css" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-md site-nav"><div class="container page-shell"><a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a><div class="ms-auto d-flex gap-2"><a class="btn btn-light btn-sm" th:href="@{/index}">Home</a><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></div></div></nav>
+<nav class="navbar navbar-expand-md site-nav"><div class="container page-shell"><a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a><div class="ms-auto d-flex align-items-center gap-2"><a class="btn btn-light btn-sm" th:href="@{/index}">Home</a><span class="site-nav-user" th:if="${currentUser != null}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="opacity: .75;"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/></svg><span th:text="${currentUser.username}">User</span><span th:if="${isAdmin}" class="badge bg-warning text-dark user-role">Admin</span></span><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></div></div></nav>
 <main class="container page-shell pb-5">
-    <header class="page-intro"><div class="page-kicker">External assistant</div><h1 class="page-title">AI chat</h1><p class="page-summary">Ask general questions and chat with your configured AI provider.</p></header>
+    <header class="page-intro d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div>
+            <div class="page-kicker">BookNest Assistant</div>
+            <h1 class="page-title">AI Chat</h1>
+            <p class="page-summary">Chat with your AI assistant using your personal book catalog or general literature knowledge.</p>
+        </div>
+        <form th:if="${!#lists.isEmpty(messages)}" th:action="@{/ai/chat/clear}" method="post" class="m-0">
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Clear conversation</button>
+        </form>
+    </header>
     <div th:if="${!aiConfigured}" class="alert alert-warning">AI is not configured yet. Set the <code>BOOKNEST_AI_API_KEY</code> environment variable and restart BookNest.</div>
     <div th:if="${chatError}" class="alert alert-danger" role="alert" th:text="${chatError}">Chat request failed.</div>
     <section class="ai-chat-panel" aria-label="Conversation">
-        <div class="ai-chat-empty" th:if="${#lists.isEmpty(messages)}"><strong>Start a conversation</strong><span>Your messages are sent to the configured AI provider. They are not based on your book catalog.</span></div>
-        <article class="ai-message" th:each="item : ${messages}" th:classappend="${item.user} ? ' ai-message-user' : ' ai-message-assistant'"><div class="ai-message-speaker" th:text="${item.speaker}">Assistant</div><p th:text="${item.content}">Message</p></article>
-        <form class="ai-chat-form" th:action="@{/ai/chat}" method="post"><label class="form-label" for="message">Your message</label><textarea class="form-control" id="message" name="message" rows="3" maxlength="4000" placeholder="Write a message..." required></textarea><div class="d-flex justify-content-between align-items-center gap-3 mt-2"><span class="form-text">Up to 4,000 characters</span><button class="btn btn-primary" type="submit" th:disabled="${!aiConfigured}">Send message <span aria-hidden="true">→</span></button></div></form>
+        <div class="ai-chat-empty" th:if="${#lists.isEmpty(messages)}">
+            <strong>Start a conversation</strong>
+            <span>Choose your knowledge mode below (Catalog RAG or General Knowledge) and ask a question!</span>
+        </div>
+        <article class="ai-message" th:each="item : ${messages}" th:classappend="${item.user} ? ' ai-message-user' : ' ai-message-assistant'">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="ai-message-speaker" th:text="${item.speaker}">Assistant</span>
+                <span th:if="${item.ragMode != null and item.ragMode}" class="badge text-bg-primary border border-primary-subtle text-white font-monospace" style="font-size: 0.72rem;">📚 Catalog (RAG ON)</span>
+                <span th:if="${item.ragMode != null and !item.ragMode}" class="badge text-bg-secondary border border-secondary-subtle text-white font-monospace" style="font-size: 0.72rem;">🌐 General (RAG OFF)</span>
+            </div>
+            <p class="m-0" th:text="${item.content}">Message</p>
+        </article>
+
+        <form class="ai-chat-form" th:action="@{/ai/chat}" method="post">
+            <!-- Mode Selection Option -->
+            <div class="card p-3 mb-3 bg-light border">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <span class="fw-semibold small text-dark">Knowledge Mode:</span>
+                    <span class="small text-muted" id="modeDescription">
+                        <span th:if="${useRag}">📚 Only answering from books in your personal catalog (RAG ON).</span>
+                        <span th:if="${!useRag}">🌐 Freely discussing books and general literature from across the world (RAG OFF).</span>
+                    </span>
+                </div>
+                <div class="btn-group w-100" role="group" aria-label="RAG Mode Selector">
+                    <input type="radio" class="btn-check" name="useRag" id="ragOn" value="true" th:checked="${useRag}" autocomplete="off" onchange="updateModeDesc(true)">
+                    <label class="btn btn-outline-primary py-2" for="ragOn">
+                        <strong class="d-block">📚 Catalog Mode (RAG ON)</strong>
+                        <span class="small fw-normal text-muted">Chỉ lấy dữ liệu trong hệ thống</span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="useRag" id="ragOff" value="false" th:checked="${!useRag}" autocomplete="off" onchange="updateModeDesc(false)">
+                    <label class="btn btn-outline-secondary py-2" for="ragOff">
+                        <strong class="d-block">🌐 General Knowledge (RAG OFF)</strong>
+                        <span class="small fw-normal text-muted">Chat mở rộng ra bên ngoài</span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="form-label fw-semibold" for="message">Your message</label>
+            <textarea class="form-control" id="message" name="message" rows="3" maxlength="4000" placeholder="Type a message..." required></textarea>
+            <div class="d-flex justify-content-between align-items-center gap-3 mt-2">
+                <span class="form-text">Up to 4,000 characters</span>
+                <button class="btn btn-primary px-4" type="submit" th:disabled="${!aiConfigured}">Send message <span aria-hidden="true">→</span></button>
+            </div>
+        </form>
     </section>
 </main>
+<script>
+    function updateModeDesc(isRag) {
+        const desc = document.getElementById('modeDescription');
+        if (isRag) {
+            desc.innerHTML = '📚 Only answering from books in your personal catalog (RAG ON).';
+        } else {
+            desc.innerHTML = '🌐 Freely discussing books and general literature from across the world (RAG OFF).';
+        }
+    }
+</script>
 </body>
 </html>

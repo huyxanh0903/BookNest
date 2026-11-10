@@ -28,10 +28,23 @@ public class AiChatService {
     public boolean isConfigured() { return apiKey != null && !apiKey.isBlank(); }
 
     public String reply(List<Map<String, String>> history, String bookContext) {
-        return complete(history, "You are BookNest's helpful book catalog assistant. " +
-                "Answer in the user's language. Use the supplied catalog context only for claims about books owned by the user. " +
-                "The context contains metadata, not book contents; never claim to have read the books. " +
-                "If the catalog context does not support an answer, say so clearly.\n\n" + bookContext);
+        return reply(history, bookContext, true);
+    }
+
+    public String reply(List<Map<String, String>> history, String bookContext, boolean useRag) {
+        String systemPrompt;
+        if (useRag) {
+            systemPrompt = "You are BookNest's personal book catalog assistant. " +
+                    "Answer in the user's language. Use ONLY the supplied catalog context below to answer. " +
+                    "The context contains metadata of books owned by the user. " +
+                    "If the user asks about a book or topic that does not exist in the supplied catalog context, politely and clearly state that it is not present in their personal collection. " +
+                    "Do NOT invent or fabricate books outside this catalog context.\n\n" + bookContext;
+        } else {
+            systemPrompt = "You are BookNest's knowledgeable literary and reading assistant. " +
+                    "Answer in the user's language. You have open, broad knowledge about all books, literature, famous authors, history of writing, summaries, and book recommendations from around the world. " +
+                    "Feel free to discuss any book, author, or topic outside of the user's local collection.";
+        }
+        return complete(history, systemPrompt);
     }
 
     public String recommend(String prompt, String recommendationContext) {

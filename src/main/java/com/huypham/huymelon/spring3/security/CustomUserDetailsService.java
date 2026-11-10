@@ -1,4 +1,4 @@
-package com.huypham.huymelon.spring3.controller;
+package com.huypham.huymelon.spring3.security;
 
 import com.huypham.huymelon.spring3.entity.User;
 import com.huypham.huymelon.spring3.repository.UserRepository;
@@ -33,3 +33,4 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .build();
     }
 }
+

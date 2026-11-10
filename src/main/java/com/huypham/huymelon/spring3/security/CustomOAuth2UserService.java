@@ -1,4 +1,4 @@
-package com.huypham.huymelon.spring3.controller;
+package com.huypham.huymelon.spring3.security;
 
 import com.huypham.huymelon.spring3.entity.User;
 import com.huypham.huymelon.spring3.service.UserService;
@@ -35,3 +35,4 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return new CustomOAuth2User(user, attributes);
     }
 }
+

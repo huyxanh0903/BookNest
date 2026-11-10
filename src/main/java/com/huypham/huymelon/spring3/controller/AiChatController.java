@@ -33,51 +33,73 @@ public class AiChatController {
     @GetMapping("/ai/chat")
     public String chat(HttpSession session, Model model) {
         List<ChatMessage> visible = (List<ChatMessage>) session.getAttribute("booknestAiVisible");
+        Boolean useRag = (Boolean) session.getAttribute("booknestAiUseRag");
+        if (useRag == null) useRag = true;
         model.addAttribute("messages", visible == null ? List.of() : visible);
         model.addAttribute("aiConfigured", aiChatService.isConfigured());
+        model.addAttribute("useRag", useRag);
         return "ai-chat";
     }
 
     @SuppressWarnings("unchecked")
     @PostMapping("/ai/chat")
-    public String send(@RequestParam String message, HttpSession session, RedirectAttributes redirect,
+    public String send(@RequestParam String message,
+                       @RequestParam(name = "useRag", required = false, defaultValue = "true") boolean useRag,
+                       HttpSession session, RedirectAttributes redirect,
                        @AuthenticationPrincipal Object principal) {
         try {
-            submit(message, session, principal);
+            submit(message, useRag, session, principal);
         } catch (IllegalArgumentException | IllegalStateException e) {
             redirect.addFlashAttribute("chatError", e.getMessage());
         }
         return "redirect:/ai/chat";
     }
 
+    @PostMapping("/ai/chat/clear")
+    public String clear(HttpSession session) {
+        session.removeAttribute("booknestAiContext");
+        session.removeAttribute("booknestAiVisible");
+        return "redirect:/ai/chat";
+    }
+
     @PostMapping("/ai/chat/ask")
     @ResponseBody
-    public Map<String, String> ask(@RequestParam String message, HttpSession session,
+    public Map<String, String> ask(@RequestParam String message,
+                                   @RequestParam(name = "useRag", required = false, defaultValue = "true") boolean useRag,
+                                   HttpSession session,
                                    @AuthenticationPrincipal Object principal) {
         try {
-            return Map.of("answer", submit(message, session, principal));
+            return Map.of("answer", submit(message, useRag, session, principal));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Map.of("error", e.getMessage());
         }
     }
 
     @SuppressWarnings("unchecked")
-    private String submit(String message, HttpSession session, Object principal) {
+    private String submit(String message, boolean useRag, HttpSession session, Object principal) {
         String prompt = message == null ? "" : message.trim();
         if (prompt.isBlank() || prompt.length() > 20000) throw new IllegalArgumentException("Enter a message of up to 20,000 characters.");
         List<Map<String, String>> context = (List<Map<String, String>>) session.getAttribute("booknestAiContext");
         List<ChatMessage> visible = (List<ChatMessage>) session.getAttribute("booknestAiVisible");
         if (context == null) { context = new ArrayList<>(); session.setAttribute("booknestAiContext", context); }
         if (visible == null) { visible = new ArrayList<>(); session.setAttribute("booknestAiVisible", visible); }
+        session.setAttribute("booknestAiUseRag", useRag);
+
         while (context.size() > 20) context.remove(0);
         while (visible.size() > 20) visible.remove(0);
         context.add(Map.of("role", "user", "content", prompt));
-        visible.add(new ChatMessage("You", prompt, true));
+        visible.add(new ChatMessage("You", prompt, true, null));
         try {
-            String catalogContext = bookService.retrieveBookContext(userService.getCurrentUser(principal), prompt);
-            String answer = aiChatService.reply(context, catalogContext);
+            String answer;
+            if (useRag) {
+                String catalogContext = bookService.retrieveBookContext(userService.getCurrentUser(principal), prompt);
+                answer = aiChatService.reply(context, catalogContext, true);
+                visible.add(new ChatMessage("BookNest AI", answer, false, true));
+            } else {
+                answer = aiChatService.reply(context, "", false);
+                visible.add(new ChatMessage("BookNest AI", answer, false, false));
+            }
             context.add(Map.of("role", "assistant", "content", answer));
-            visible.add(new ChatMessage("BookNest AI", answer, false));
             return answer;
         } catch (IllegalStateException e) {
             context.remove(context.size() - 1);
@@ -86,5 +108,9 @@ public class AiChatController {
         }
     }
 
-    public record ChatMessage(String speaker, String content, boolean user) {}
+    public record ChatMessage(String speaker, String content, boolean user, Boolean ragMode) {
+        public ChatMessage(String speaker, String content, boolean user) {
+            this(speaker, content, user, null);
+        }
+    }
 }
