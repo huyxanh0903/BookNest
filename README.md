@@ -1,125 +1,159 @@
-# BookNest
+# 📚 BookNest — Personal Book Catalog & AI Assistant
 
-BookNest is a small personal learning project for exploring **Spring Boot**, **Thymeleaf**, and a layered application structure. It provides a simple web application for managing a personal book collection, with optional AI features connected to an OpenAI-compatible chat API.
+**BookNest** là một ứng dụng web quản lý danh mục sách cá nhân được xây dựng trên nền tảng **Spring Boot 4 / Java 17**, **Thymeleaf**, **Spring Security** và **Microsoft SQL Server**.
 
-> This project is intended for learning and local development. It is not a production-ready library or authentication system.
+Dự án được thiết kế theo phong cách giao diện *Academic Catalog* (gọn gàng, thanh lịch, tập trung vào nội dung sách) và tích hợp các công nghệ hiện đại: **Đăng nhập Google OAuth2**, **Tìm kiếm sách trực tuyến (Google Books / Open Library)** và **Trợ lý AI (Groq / OpenAI)** với cơ chế **Bật/Tắt RAG** (Retrieval-Augmented Generation).
 
-## What I am learning
+---
 
-- Building server-rendered web pages with Spring MVC and Thymeleaf.
-- Organizing application code into controller, service, and repository layers.
-- Persisting entities with Spring Data JPA and Microsoft SQL Server.
-- Adding login and role-based access with Spring Security.
-- Calling external book catalog APIs and an AI chat API from a Spring service.
-- Keeping provider settings and API keys in local configuration.
+## 🌟 Các tính năng nổi bật (Features)
 
-## Features
+1. **Quản lý danh mục sách cá nhân (Personal Catalog)**:
+   - Thêm, sửa, xóa, xem chi tiết sách trong bộ sưu tập.
+   - Bảo mật dữ liệu nhiều người dùng: Mỗi người dùng chỉ xem và quản lý sách của chính mình (chống lỗ hổng IDOR).
+2. **Phân quyền người dùng (Role-Based Access Control - RBAC)**:
+   - **`ADMIN`**: Quản lý toàn bộ danh mục thể loại (Categories), xem và quản lý tất cả sách của toàn bộ người dùng trong hệ thống với cột hiển thị người sở hữu (Owner).
+   - **`USER`**: Quản lý sách cá nhân, thiết lập hồ sơ đọc sách, trò chuyện cùng AI.
+   - Hiển thị tên tài khoản và huy hiệu `ADMIN` trên thanh Navbar kế bên nút Sign out.
+3. **Đa dạng hình thức Đăng nhập (Authentication)**:
+   - Đăng nhập bằng tài khoản / mật khẩu truyền thống (Mã hóa BCrypt).
+   - Đăng nhập một chạm bằng **Google OAuth2 / OpenID Connect**.
+4. **Tìm kiếm sách trực tuyến tự động (External Book Search)**:
+   - Tìm sách nhanh qua **Google Books API**, tự động dự phòng (**fallback sang Open Library API**) nếu Google gặp sự cố.
+   - Tự động điền thông tin (tiêu đề, tác giả, ISBN, năm xuất bản, ảnh bìa) vào form thêm sách.
+5. **Trợ lý AI thông minh 2 chế độ (AI Assistant with RAG Toggle)**:
+   - **📚 Catalog Mode (RAG BẬT)**: AI chỉ tìm kiếm và trả lời câu hỏi dựa trên các cuốn sách đang có trong tủ sách cá nhân của bạn.
+   - **🌐 General Knowledge (RAG TẮT)**: AI trò chuyện mở rộng ra bên ngoài về văn học thế giới, tóm tắt tác phẩm, tác giả nổi tiếng.
+   - Hỗ trợ cả trang chat chuyên biệt (`/ai/chat`) lẫn Widget AI nổi ở góc phải màn hình (`ai-widget`).
+6. **Hồ sơ đọc sách & Gợi ý (Reading Profile & AI Recommendations)**:
+   - Thiết lập sở thích thể loại, chủ đề, ngôn ngữ và mục tiêu đọc sách.
+   - AI kết hợp hồ sơ của bạn với kết quả tìm kiếm sách để đề xuất cuốn sách phù hợp tiếp theo kèm lý do chi tiết.
 
-- Register and sign in to a personal account.
-- Add, edit, browse, and organize books by category.
-- Search external catalogs using Google Books, with Open Library as a fallback.
-- Save a reading profile and view AI-assisted recommendations based on external book metadata.
-- Chat with an AI assistant using the signed-in user's book catalog as context.
-- Restrict category management to users with the administrator role.
+---
 
-## Technology
+## 🛠️ Công nghệ sử dụng (Tech Stack)
 
-- Java 17
-- Spring Boot 4.1.2
-- Spring MVC and Thymeleaf
-- Spring Security
-- Spring Data JPA / Hibernate
-- Microsoft SQL Server
-- Maven Wrapper
-- Groq-compatible Chat Completions API by default (configurable)
+- **Ngôn ngữ**: Java 17+ (tương thích cả JDK 21).
+- **Backend**: Spring Boot 4.1.2, Spring Web MVC, Spring Data JPA / Hibernate.
+- **Bảo mật**: Spring Security 6 (Form Login, BCrypt, OAuth2 Client / OIDC).
+- **Cơ sở dữ liệu**: Microsoft SQL Server (kết nối qua `mssql-jdbc` và HikariCP).
+- **Frontend**: Thymeleaf, Bootstrap 5.3.3, Typography Literata & Source Sans 3, CSS tùy chỉnh.
+- **Tích hợp bên thứ ba**:
+  - Google Identity Services (OAuth2).
+  - Google Books API & Open Library API.
+  - Groq Cloud / OpenAI API (Chat Completions).
 
-## Application structure
+---
 
-The application follows a three-layer flow. A request moves from the web layer through business logic to data access, then the result returns to a Thymeleaf view.
+## 🏗️ Kiến trúc thư mục (Application Architecture)
+
+Dự án được phân tầng nghiêm ngặt theo chuẩn Layered Architecture:
 
 ```text
-Browser
-  -> Controller       Handles routes, form input, and view models
-  -> Service          Applies business rules and coordinates operations
-  -> Repository       Reads and writes entities using Spring Data JPA
-  -> SQL Server
-
-Controller -> Thymeleaf template -> HTML response
-Service -> ExternalBookSearchService / AiChatService -> External APIs
+com.huypham.huymelon.spring3/
+├── config/                  # Cấu hình hệ thống (SecurityFilterChain, PasswordEncoder, DataInitializer)
+├── security/                # Dịch vụ xác thực tài khoản (CustomUserDetailsService, OAuth2, OIDC)
+├── controller/              # Điều hướng request và trả về giao diện Thymeleaf
+├── service/                 # Logic nghiệp vụ, RAG context retrieval, RestClient gọi API bên ngoài
+├── repository/              # Tương tác với CSDL qua Spring Data JPA
+└── entity/                  # Các thực thể CSDL (Book, Category, User)
 ```
 
-Main packages:
+---
 
-| Package | Responsibility |
-| --- | --- |
-| `controller` | Spring MVC routes, form handling, and security configuration |
-| `service` | Book, category, user, external search, and AI logic |
-| `repository` | Spring Data JPA database access |
-| `entity` | JPA models for books, categories, and users |
-| `config` | Application startup data initialization |
-| `resources/templates` | Thymeleaf HTML pages |
-| `resources/static` | CSS and other static assets |
+## 🚀 Hướng dẫn Cài đặt & Chạy ứng dụng trên Localhost (Step-by-Step)
 
-## Run locally
+Dành cho bất kỳ thành viên nào clone dự án về máy cá nhân:
 
-### Requirements
+### 1. Yêu cầu môi trường (Prerequisites)
+- Đã cài đặt **JDK 17** trở lên (khuyên dùng JDK 17 hoặc JDK 21).
+- Đã cài đặt **Microsoft SQL Server** (bản Developer hoặc Express).
+- IDE khuyên dùng: **IntelliJ IDEA** (khuyên dùng), VS Code hoặc Eclipse.
 
-- JDK 17 or later
-- SQL Server running locally or reachable from your machine
-- A SQL Server database named `LibraryDB` (or update the datasource settings)
-- An AI provider API key only if you want to use chat and AI recommendations
+---
 
-### Configure the database
+### 2. Thiết lập Cơ sở dữ liệu (Database Setup)
+1. Mở **SQL Server Management Studio (SSMS)** hoặc **Azure Data Studio**.
+2. Chạy câu lệnh tạo database:
+   ```sql
+   CREATE DATABASE LibraryDB;
+   ```
+3. Mở file [`src/main/resources/application.properties`](src/main/resources/application.properties) và điều chỉnh thông tin đăng nhập SQL Server cho khớp với máy của bạn (nếu mật khẩu của bạn khác `12345`):
+   ```properties
+   spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=LibraryDB;encrypt=true;trustServerCertificate=true
+   spring.datasource.username=sa
+   spring.datasource.password=mật_khẩu_sql_server_của_bạn
+   ```
+   *(Hibernate sẽ tự động tạo bảng khi ứng dụng khởi chạy lần đầu nhờ `ddl-auto=update`)*.
 
-The current datasource connection is configured in `src/main/resources/application.properties`. Update the URL, database name, username, and password to match your local SQL Server. Do not commit real passwords or other credentials to GitHub.
+---
 
-The application uses Hibernate schema update (`spring.jpa.hibernate.ddl-auto=update`) for local learning. Review the setting before using a database with important data.
-
-### Configure the optional AI features
-
-The app imports an optional `.env` file from the project root. Create or update `.env` with your provider settings:
+### 3. Cấu hình biến môi trường (`.env`)
+Tạo một file mang tên `.env` tại thư mục gốc của dự án (ngang hàng với `pom.xml`), sao chép nội dung từ file `.env.example` vào:
 
 ```properties
-BOOKNEST_AI_API_KEY=your-api-key
+# 1. Cấu hình AI Chatbot (Lấy API Key miễn phí tại https://console.groq.com)
+BOOKNEST_AI_API_KEY=gsk_your_groq_api_key_here
 BOOKNEST_AI_ENDPOINT=https://api.groq.com/openai/v1/chat/completions
 BOOKNEST_AI_MODEL=openai/gpt-oss-20b
+
+# 2. Cấu hình Google OAuth2 Login (Tùy chọn: chỉ cần nếu muốn dùng nút đăng nhập Google)
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 ```
 
-The endpoint and model shown are defaults for this project and can be changed to match a compatible provider. Keep `.env` private; it is excluded by `.gitignore`. The app can start without an AI key, but AI chat and recommendations will not work until one is configured.
+> **Mẹo:**
+> - Nếu chưa có Key AI: Ứng dụng vẫn chạy và quản lý sách bình thường (chỉ tính năng chat AI sẽ báo cần key). Bạn có thể tạo Key Groq hoàn toàn miễn phí chỉ mất 30 giây tại [console.groq.com](https://console.groq.com).
+> - Nếu chưa cấu hình Google: Bạn vẫn có thể đăng ký tài khoản thường hoặc dùng tài khoản Admin mặc định bên dưới.
 
-### Start the application
+---
 
-From the project directory, run on Windows:
+### 4. Khởi chạy ứng dụng (Run Application)
 
-```powershell
-.\mvnw.cmd spring-boot:run
-```
+#### Cách 1: Chạy bằng IntelliJ IDEA (Đơn giản nhất)
+1. Mở thư mục dự án trong IntelliJ IDEA.
+2. Để IntelliJ đồng bộ Maven: Chuột phải vào file `pom.xml` > chọn **Maven** > **Reload project**.
+3. Mở file `src/main/java/com/huypham/huymelon/spring3/Spring3Application.java`.
+4. Bấm nút **Run** (biểu tượng tam giác màu xanh ▶️).
 
-On macOS or Linux:
+#### Cách 2: Chạy bằng dòng lệnh Terminal
+- Trên **Windows**:
+  ```powershell
+  .\mvnw.cmd spring-boot:run
+  ```
+  *(Hoặc nếu đã cài Maven: `mvn spring-boot:run`)*
+- Trên **macOS / Linux**:
+  ```bash
+  ./mvnw spring-boot:run
+  ```
 
-```bash
-./mvnw spring-boot:run
-```
+---
 
-Then open [http://localhost:8080](http://localhost:8080).
+### 5. Truy cập & Trải nghiệm
+Sau khi terminal báo `Started Spring3Application in ... seconds`:
+1. Mở trình duyệt và truy cập: **[http://localhost:8080](http://localhost:8080)**.
+2. **Tài khoản Administrator mặc định** (hệ thống tự động khởi tạo khi chạy lần đầu):
+   - **Username**: `admin`
+   - **Password**: `admin123`
+3. **Tài khoản thông thường**:
+   - Bấm **"Create an account"** để đăng ký tài khoản mới.
+   - Hoặc bấm **"Continue with Google"** để đăng nhập bằng tài khoản Google.
 
-On first startup, the app seeds default book categories and creates a local administrator account if one does not already exist:
+---
 
-```text
-Username: admin
-Password: admin123
-```
+## ❓ Xử lý lỗi thường gặp (Troubleshooting)
 
-This default is for local learning only. Change or remove it before exposing the application to other users.
+- **Lỗi kết nối SQL Server (`The connection to the host localhost, named instance failed`)**:
+  - Mở *SQL Server Configuration Manager* > kiểm tra dịch vụ `SQL Server (MSSQLSERVER)` đã ở trạng thái **Running**.
+  - Kiểm tra mục *Protocols for MSSQLSERVER* > đảm bảo **TCP/IP** đã được **Enabled** và port là `1433`.
+- **Lỗi Google OAuth2 Redirect URI**:
+  - Khi tạo Credentials trên Google Cloud Console, mục **Authorized redirect URIs** bắt buộc phải điền chính xác:
+    `http://localhost:8080/login/oauth2/code/google`
+- **Lỗi IntelliJ báo đỏ package `security.oauth2`**:
+  - Vào **Settings** (`Ctrl + Alt + S`) > **Build Tools** > **Maven** > **Runner** > Tích chọn ô **`Delegate IDE build/run actions to Maven`**.
 
-## Learning notes
+---
 
-- **Controller:** receives a request, validates or binds form data, calls a service, and selects a Thymeleaf template.
-- **Service:** contains application behavior so controllers do not need to implement business rules or database queries directly.
-- **Repository:** provides persistence operations for entities through Spring Data JPA.
-- **Thymeleaf:** renders server-side HTML from templates in `src/main/resources/templates` using data added to the MVC model.
-- **AI integration:** `AiChatService` sends chat messages to a configurable OpenAI-compatible endpoint. The key is read from configuration rather than embedded in Java source.
-
-## Project status
-
-This is a small, evolving study project. Some configuration and implementation choices are intentionally simple to make the framework concepts easier to explore. Review authentication defaults, database configuration, and error handling before adapting it for a real deployment.
+## 📄 License & Notes
+Dự án được xây dựng phục vụ cho mục đích học tập môn học HSF302 và tìm hiểu kiến trúc Spring Boot hiện đại.
+Mọi thắc mắc và đóng góp xin vui lòng liên hệ tác giả qua kho lưu trữ GitHub!
