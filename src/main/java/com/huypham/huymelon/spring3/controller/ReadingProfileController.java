@@ -31,20 +31,20 @@ public class ReadingProfileController {
     }
 
     @GetMapping("/reading-profile")
-    public String profile(@AuthenticationPrincipal UserDetails principal, Model model) {
-        model.addAttribute("profile", userService.findByUsername(principal.getUsername()));
+    public String profile(@AuthenticationPrincipal Object principal, Model model) {
+        model.addAttribute("profile", userService.getCurrentUser(principal));
         return "reading-profile";
     }
 
     @PostMapping("/reading-profile")
-    public String save(@AuthenticationPrincipal UserDetails principal,
+    public String save(@AuthenticationPrincipal Object principal,
                        @RequestParam(required = false) String favoriteGenres,
                        @RequestParam(required = false) String readingTopics,
                        @RequestParam(required = false) String preferredLanguage,
                        @RequestParam(required = false) String readingGoal,
                        RedirectAttributes redirect) {
         try {
-            userService.saveReadingProfile(userService.findByUsername(principal.getUsername()), favoriteGenres,
+            userService.saveReadingProfile(userService.getCurrentUser(principal), favoriteGenres,
                     readingTopics, preferredLanguage, readingGoal);
             redirect.addFlashAttribute("profileSaved", "Your reading profile has been saved.");
         } catch (IllegalArgumentException e) {
@@ -54,8 +54,8 @@ public class ReadingProfileController {
     }
 
     @GetMapping("/recommendations")
-    public String recommendations(@AuthenticationPrincipal UserDetails principal, Model model) {
-        User user = userService.findByUsername(principal.getUsername());
+    public String recommendations(@AuthenticationPrincipal Object principal, Model model) {
+        User user = userService.getCurrentUser(principal);
         model.addAttribute("profile", user);
         String searchQuery = Stream.of(user.getFavoriteGenres(), user.getReadingTopics(), user.getPreferredLanguage())
                 .filter(value -> value != null && !value.isBlank()).collect(Collectors.joining(" "));

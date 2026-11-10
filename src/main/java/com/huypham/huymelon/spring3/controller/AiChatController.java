@@ -41,7 +41,7 @@ public class AiChatController {
     @SuppressWarnings("unchecked")
     @PostMapping("/ai/chat")
     public String send(@RequestParam String message, HttpSession session, RedirectAttributes redirect,
-                       @AuthenticationPrincipal UserDetails principal) {
+                       @AuthenticationPrincipal Object principal) {
         try {
             submit(message, session, principal);
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -53,7 +53,7 @@ public class AiChatController {
     @PostMapping("/ai/chat/ask")
     @ResponseBody
     public Map<String, String> ask(@RequestParam String message, HttpSession session,
-                                   @AuthenticationPrincipal UserDetails principal) {
+                                   @AuthenticationPrincipal Object principal) {
         try {
             return Map.of("answer", submit(message, session, principal));
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -62,7 +62,7 @@ public class AiChatController {
     }
 
     @SuppressWarnings("unchecked")
-    private String submit(String message, HttpSession session, UserDetails principal) {
+    private String submit(String message, HttpSession session, Object principal) {
         String prompt = message == null ? "" : message.trim();
         if (prompt.isBlank() || prompt.length() > 20000) throw new IllegalArgumentException("Enter a message of up to 20,000 characters.");
         List<Map<String, String>> context = (List<Map<String, String>>) session.getAttribute("booknestAiContext");
@@ -74,7 +74,7 @@ public class AiChatController {
         context.add(Map.of("role", "user", "content", prompt));
         visible.add(new ChatMessage("You", prompt, true));
         try {
-            String catalogContext = bookService.retrieveBookContext(userService.findByUsername(principal.getUsername()), prompt);
+            String catalogContext = bookService.retrieveBookContext(userService.getCurrentUser(principal), prompt);
             String answer = aiChatService.reply(context, catalogContext);
             context.add(Map.of("role", "assistant", "content", answer));
             visible.add(new ChatMessage("BookNest AI", answer, false));

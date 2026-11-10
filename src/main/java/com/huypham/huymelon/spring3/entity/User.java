@@ -40,7 +40,7 @@ public class User {
     private Boolean enabled;
 
     @ColumnDefault("sysutcdatetime()")
-    @Column(name = "CreatedAt", nullable = false)
+    @Column(name = "CreatedAt", nullable = false, columnDefinition = "datetime2")
     private Instant createdAt;
 
     @Nationalized

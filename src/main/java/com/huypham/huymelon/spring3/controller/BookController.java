@@ -82,14 +82,14 @@ public class BookController {
     }
 
     @GetMapping({"/", "/index"})
-    public String index(Model model, @AuthenticationPrincipal UserDetails principal) {
+    public String index(Model model, @AuthenticationPrincipal Object principal) {
         User owner = currentUser(principal);
         model.addAttribute("bookCount", bookService.countBooksFor(owner));
         return "index";
     }
 
     @GetMapping("/book")
-    public String getAllBook(Model model, @AuthenticationPrincipal UserDetails principal) {
+    public String getAllBook(Model model, @AuthenticationPrincipal Object principal) {
         model.addAttribute("List", bookService.getBooksFor(currentUser(principal)));
         return "books";
     }
@@ -135,7 +135,7 @@ public class BookController {
     @PostMapping("/book")
     public String createBook(@ModelAttribute("object") Book form,
                              Model model,
-                             @AuthenticationPrincipal UserDetails principal,
+                             @AuthenticationPrincipal Object principal,
                              RedirectAttributes redirectAttributes) {
         String error = validateBook(form);
         if (error != null) {
@@ -159,7 +159,7 @@ public class BookController {
     @GetMapping("/book/edit/{id}")
     public String editBook(@PathVariable Long id,
                            Model model,
-                           @AuthenticationPrincipal UserDetails principal) {
+                           @AuthenticationPrincipal Object principal) {
         Book book = bookService.findByIdForOwner(id, currentUser(principal));
         book.setCategoryId(book.getCategory().getId());
         model.addAttribute("object", book);
@@ -171,7 +171,7 @@ public class BookController {
     @GetMapping("/book/{id}")
     public String viewBook(@PathVariable Long id,
                            Model model,
-                           @AuthenticationPrincipal UserDetails principal) {
+                           @AuthenticationPrincipal Object principal) {
         Book book = bookService.findByIdForOwner(id, currentUser(principal));
         model.addAttribute("book", book);
         String query = book.getIsbn() == null || book.getIsbn().isBlank()
@@ -186,7 +186,7 @@ public class BookController {
     public String updateBook(@PathVariable Long id,
                              @ModelAttribute("object") Book form,
                              Model model,
-                             @AuthenticationPrincipal UserDetails principal,
+                             @AuthenticationPrincipal Object principal,
                              RedirectAttributes redirectAttributes) {
         String error = validateBook(form);
         if (error != null) {
@@ -211,15 +211,15 @@ public class BookController {
 
     @PostMapping("/book/{id}/delete")
     public String deleteBook(@PathVariable Long id,
-                             @AuthenticationPrincipal UserDetails principal,
+                             @AuthenticationPrincipal Object principal,
                              RedirectAttributes redirectAttributes) {
         bookService.delete(id, currentUser(principal));
         redirectAttributes.addFlashAttribute("notice", "Book removed from your library.");
         return "redirect:/book";
     }
 
-    private User currentUser(UserDetails principal) {
-        return userService.findByUsername(principal.getUsername());
+    private User currentUser(Object principal) {
+        return userService.getCurrentUser(principal);
     }
 
     private String validateBook(Book book) {
