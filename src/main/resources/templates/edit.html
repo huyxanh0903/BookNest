@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${isNew} ? 'Add book | BookNest' : 'Edit book | BookNest'">Book record | BookNest</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/css/booknest.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-md site-nav"><div class="container page-shell">
+    <a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a>
+    <div class="ms-auto d-flex align-items-center gap-2"><a class="btn btn-light btn-sm" th:href="@{/book}">Back to books</a><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></div>
+</div></nav>
+<main class="container page-shell pb-5">
+    <div class="pt-4"><nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a th:href="@{/index}" class="text-decoration-none">Home</a></li><li class="breadcrumb-item"><a th:href="@{/book}" class="text-decoration-none">Books</a></li><li class="breadcrumb-item active" aria-current="page" th:text="${isNew} ? 'Add record' : 'Edit record'">Book record</li></ol></nav></div>
+    <header class="page-intro mt-2"><div class="page-kicker">Catalog entry</div><h1 class="page-title" th:text="${isNew} ? 'Add a book' : 'Edit book record'">Book record</h1><p class="page-summary" th:text="${isNew} ? 'Enter the details for a book in your collection.' : 'Update the details kept in your catalog.'">Update the details kept in your catalog.</p></header>
+    <div th:if="${error}" class="alert alert-danger mb-4" role="alert" th:text="${error}">Please check the book details.</div>
+    <form class="form-sheet" th:action="${isNew} ? @{/book} : @{/book/{id}/update(id=${object.id})}" method="post" th:object="${object}">
+        <div class="form-sheet-header d-flex justify-content-between align-items-center"><div><div class="page-kicker">Book details</div><h2 class="h5 mb-0 mt-1" th:text="${isNew ? 'New record' : object.title}">Book title</h2></div><div><span class="badge text-bg-light border me-2" th:if="${isAdmin and !isNew and object.owner != null}" th:text="'Owner: ' + ${object.owner.username}">Owner: user</span><span class="catalog-id" th:if="${!isNew}">Record <span th:text="*{id}">1</span></span></div></div>
+        <div class="form-sheet-body">
+            <input th:if="${!isNew}" type="hidden" th:field="*{id}">
+            <div class="form-section-label">Bibliographic information</div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-5"><label class="form-label" for="isbn">ISBN</label><input class="form-control" id="isbn" th:field="*{isbn}" required maxlength="20" autocomplete="off"></div>
+                <div class="col-md-7"><label class="form-label" for="title">Title</label><input class="form-control" id="title" th:field="*{title}" required maxlength="200"></div>
+                <div class="col-md-7"><label class="form-label" for="author">Author</label><input class="form-control" id="author" th:field="*{author}" required maxlength="100"></div>
+                <div class="col-md-5"><label class="form-label" for="categoryId">Category</label><select class="form-select" id="categoryId" th:field="*{categoryId}" required><option value="">Choose a category</option><option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}"></option></select><div class="form-text" th:if="${#lists.isEmpty(categories)}">No categories yet. <a th:if="${isAdmin}" th:href="@{/categories}">Create one first.</a><span th:if="${!isAdmin}">Please contact an administrator to add categories.</span></div></div>
+                <div class="col-12"><label class="form-label" for="coverImageUrl">Cover image URL <span class="text-secondary fw-normal">(optional)</span></label><input class="form-control" id="coverImageUrl" type="url" th:field="*{coverImageUrl}" maxlength="1000" placeholder="https://example.com/book-cover.jpg"><div class="form-text">Online search results fill this in when a cover is available.</div><img th:if="*{coverImageUrl != null and !coverImageUrl.isBlank()}" th:src="*{coverImageUrl}" alt="Book cover preview" class="edit-cover-preview mt-2"></div>
+            </div>
+            <div class="form-section-label">Collection details</div>
+            <div class="row g-3">
+                <div class="col-md-5"><label class="form-label" for="publishYear">Publication year</label><input class="form-control" id="publishYear" type="number" min="0" th:field="*{publishYear}"></div>
+                <div class="col-md-3"><label class="form-label" for="quantity">Copies</label><input class="form-control" id="quantity" type="number" min="0" th:field="*{quantity}" required></div>
+                <div class="col-md-4 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" id="available" type="checkbox" th:field="*{available}"><label class="form-check-label fw-semibold" for="available">Available in my collection</label></div></div>
+            </div>
+        </div>
+        <div class="form-sheet-footer d-flex flex-wrap gap-2"><button class="btn btn-primary px-4" type="submit" th:text="${isNew} ? 'Add to catalog' : 'Save record'">Save record</button><a class="btn btn-light" th:href="@{/book}">Cancel</a></div>
+    </form>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/ai-widget :: widget}"></div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<div th:fragment="widget" class="ai-widget">
+    <button class="ai-widget-toggle" id="aiWidgetToggle" type="button" aria-label="Open AI chat" aria-expanded="false" aria-controls="aiWidgetPanel">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.8A2.8 2.8 0 0 1 7.8 2H20v16H7.8A2.8 2.8 0 0 0 5 20.8V4.8Z"/><path d="M5 5v16m4-14h7m-7 4h7"/></svg>
+    </button>
+    <section class="ai-widget-panel" id="aiWidgetPanel" aria-label="BookNest AI chat" hidden>
+        <header class="ai-widget-header"><div><span class="ai-widget-eyebrow">BOOKNEST ASSISTANT</span><strong>Quick chat</strong><small>Uses your book catalog details</small></div><button id="aiWidgetClose" class="ai-widget-close" type="button" aria-label="Close chat">×</button></header>
+        <div class="ai-widget-messages" id="aiWidgetMessages" aria-live="polite"><div class="ai-widget-welcome">Hi! What would you like to ask?</div></div>
+        <form id="aiWidgetForm" class="ai-widget-form" th:action="@{/ai/chat/ask}" method="post">
+            <label class="visually-hidden" for="aiWidgetInput">Message</label><textarea id="aiWidgetInput" name="message" rows="2" maxlength="20000" placeholder="Type a message…" required></textarea>
+            <button type="submit" aria-label="Send message">Send <span aria-hidden="true">↑</span></button>
+        </form>
+    </section>
+    <script>
+        (() => {
+            const toggle = document.getElementById('aiWidgetToggle');
+            const panel = document.getElementById('aiWidgetPanel');
+            const close = document.getElementById('aiWidgetClose');
+            const form = document.getElementById('aiWidgetForm');
+            const input = document.getElementById('aiWidgetInput');
+            const messages = document.getElementById('aiWidgetMessages');
+            const show = (open) => { panel.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); if (open) input.focus(); };
+            toggle.addEventListener('click', () => show(panel.hidden));
+            close.addEventListener('click', () => show(false));
+            const addMessage = (text, kind) => { const bubble = document.createElement('div'); bubble.className = `ai-widget-bubble ${kind}`; bubble.textContent = text; messages.appendChild(bubble); messages.scrollTop = messages.scrollHeight; return bubble; };
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const text = input.value.trim();
+                if (!text) return;
+                addMessage(text, 'from-user'); input.value = '';
+                const pending = addMessage('Thinking…', 'from-ai');
+                const button = form.querySelector('button'); button.disabled = true;
+                try {
+                    const body = new URLSearchParams();
+                    const csrf = form.querySelector('input[name="_csrf"]');
+                    if (csrf) body.set('_csrf', csrf.value);
+                    body.set('message', text);
+                    const response = await fetch(form.action, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const result = await response.json();
+                    pending.textContent = result.answer || result.error || 'The AI request failed.';
+                } catch (_) { pending.textContent = 'Could not connect to the AI provider. Check the app logs and provider settings.'; }
+                finally { button.disabled = false; input.focus(); }
+            });
+        })();
+    </script>
+</div>

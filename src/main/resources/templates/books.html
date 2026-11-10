@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Books | BookNest</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/css/booknest.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-md site-nav"><div class="container page-shell">
+    <a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav"><ul class="navbar-nav ms-auto align-items-md-center gap-md-1">
+        <li class="nav-item"><a class="nav-link" th:href="@{/index}">Home</a></li><li class="nav-item"><a class="nav-link active" aria-current="page" th:href="@{/book}">Books</a></li><li class="nav-item" th:if="${isAdmin}"><a class="nav-link" th:href="@{/categories}">Categories</a></li>
+        <li class="nav-item ms-md-3"><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></li>
+    </ul></div>
+</div></nav>
+<main class="container page-shell pb-5">
+    <div class="pt-4"><nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a th:href="@{/index}" class="text-decoration-none">Home</a></li><li class="breadcrumb-item active" aria-current="page">Books</li></ol></nav></div>
+    <header class="page-intro mt-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div><div class="page-kicker">Personal collection</div><h1 class="page-title">Book records</h1><p class="page-summary">Search and maintain the books in your catalog.</p></div>
+            <div class="d-flex flex-wrap gap-2 pb-1"><a class="btn btn-outline-primary" th:href="@{/book/search}">Find online</a><a class="btn btn-primary" th:href="@{/book/new}">Add a book</a></div>
+        </div>
+    </header>
+    <div th:if="${notice}" class="alert alert-success alert-dismissible fade show mb-4" role="alert"><span th:text="${notice}">Book updated.</span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+    <section aria-labelledby="catalogHeading">
+        <div class="catalog-toolbar"><div class="catalog-count"><strong th:text="${#lists.size(List)}">0</strong> records <span th:text="${isAdmin} ? 'across all users' : 'in your catalog'">in your catalog</span></div><div class="catalog-search"><label class="visually-hidden" for="bookSearch">Search books</label><input id="bookSearch" class="form-control" type="search" placeholder="Search your records" aria-label="Search books"></div></div>
+        <div class="catalog-sheet">
+            <div class="catalog-sheet-header d-flex justify-content-between align-items-center"><h2 id="catalogHeading" class="catalog-sheet-title">Catalog index</h2><span class="small text-secondary">Newest record numbers first</span></div>
+            <div class="table-responsive"><table class="table table-hover align-middle catalog-table">
+                <thead><tr><th class="ps-3">Record</th><th>Title / author</th><th th:if="${isAdmin}">Owner</th><th>ISBN</th><th>Year</th><th>Copies</th><th>Status</th><th class="text-end pe-3">Actions</th></tr></thead>
+                <tbody id="bookRows">
+                <tr th:each="book : ${List}" class="book-row">
+                    <td class="ps-3 catalog-id" th:text="${book.id}">1</td>
+                    <td><div class="book-cell"><img th:if="${book.coverImageUrl != null and !book.coverImageUrl.isBlank()}" th:src="${book.coverImageUrl}" alt="Book cover" class="book-cover-thumb"><span th:if="${book.coverImageUrl == null or book.coverImageUrl.isBlank()}" class="book-cover-placeholder" aria-hidden="true">BN</span><div class="book-record"><span class="book-title" th:text="${book.title}">Book title</span><span class="book-author" th:text="${book.author}">Author</span></div></div></td>
+                    <td th:if="${isAdmin}"><span class="badge rounded-pill text-bg-light border" th:text="${book.owner != null ? book.owner.username : 'Unknown'}">Owner</span></td>
+                    <td class="record-isbn" th:text="${book.isbn}">978...</td>
+                    <td class="catalog-id" th:text="${book.publishYear}">2026</td>
+                    <td><span class="record-quantity" th:text="${book.quantity}">10</span></td>
+                    <td><span class="badge rounded-pill" th:classappend="${book.available} ? ' text-bg-success' : ' text-bg-secondary'" th:text="${book.available} ? 'Available' : 'Unavailable'">Available</span></td>
+                    <td class="text-end pe-3 record-actions"><div class="d-inline-flex gap-2"><a class="btn btn-sm btn-light" th:href="@{'/book/' + ${book.id}}">View</a><a class="btn btn-sm btn-outline-primary" th:href="@{'/book/edit/' + ${book.id}}">Edit</a><form th:action="@{'/book/' + ${book.id} + '/delete'}" method="post" class="m-0" onsubmit="return confirm('Delete this book from your catalog?')"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div></td>
+                </tr>
+                <tr id="emptyState" th:if="${#lists.isEmpty(List)}"><td th:colspan="${isAdmin} ? 8 : 7" class="empty-state"><strong>Your catalog is empty</strong>Add a book manually or search the online catalog.<div class="d-flex justify-content-center gap-2 mt-3"><a class="btn btn-primary btn-sm" th:href="@{/book/new}">Add a book</a><a class="btn btn-outline-primary btn-sm" th:href="@{/book/search}">Find online</a></div></td></tr>
+                <tr id="noSearchResults" class="d-none"><td th:colspan="${isAdmin} ? 8 : 7" class="empty-state">No records match your search.</td></tr>
+                </tbody>
+            </table></div>
+            <div class="catalog-footer" th:text="${isAdmin} ? 'Viewing all records across the system (Administrator mode).' : 'Each record belongs to your account.'">Each record belongs to your account.</div>
+        </div>
+    </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const search = document.getElementById('bookSearch');
+    search.addEventListener('input', () => {
+        const query = search.value.trim().toLowerCase();
+        const rows = [...document.querySelectorAll('.book-row')];
+        let visible = 0;
+        rows.forEach(row => {
+            const match = row.innerText.toLowerCase().includes(query);
+            row.classList.toggle('d-none', !match);
+            if (match) visible++;
+        });
+        document.getElementById('noSearchResults').classList.toggle('d-none', visible > 0 || !query || rows.length === 0);
+    });
+</script>
+<div th:replace="~{fragments/ai-widget :: widget}"></div>
+</body>
+</html>
