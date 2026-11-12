@@ -8,7 +8,26 @@
     <link href="/css/booknest.css" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-md site-nav"><div class="container page-shell"><a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a><div class="ms-auto d-flex align-items-center gap-2"><a class="btn btn-light btn-sm" th:href="@{/index}">Home</a><span class="site-nav-user" th:if="${currentUser != null}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="opacity: .75;"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/></svg><span th:text="${currentUser.username}">User</span><span th:if="${isAdmin}" class="badge bg-warning text-dark user-role">Admin</span></span><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></div></div></nav>
+<nav class="navbar navbar-expand-md site-nav">
+    <div class="container page-shell">
+        <a class="navbar-brand" th:href="@{/index}"><span class="wordmark-rule">BN</span>BookNest</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="mainNav"><ul class="navbar-nav ms-auto align-items-md-center gap-md-1">
+            <li class="nav-item"><a class="nav-link" th:href="@{/index}">Home</a></li>
+            <li class="nav-item"><a class="nav-link" th:href="@{/book}">Books</a></li>
+            <li class="nav-item" th:if="${isAdmin}"><a class="nav-link" th:href="@{/categories}">Categories</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" th:href="@{/ai/chat}">AI Chat</a></li>
+            <li class="nav-item ms-md-3" th:if="${currentUser != null}">
+                <span class="site-nav-user">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="opacity: .75;"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/></svg>
+                    <span th:text="${currentUser.username}">User</span>
+                    <span th:if="${isAdmin}" class="badge bg-warning text-dark user-role">Admin</span>
+                </span>
+            </li>
+            <li class="nav-item ms-md-1"><form th:action="@{/logout}" method="post" class="m-0"><button class="btn btn-signout btn-sm" type="submit">Sign out</button></form></li>
+        </ul></div>
+    </div>
+</nav>
 <main class="container page-shell pb-5">
     <header class="page-intro d-flex flex-wrap justify-content-between align-items-end gap-3">
         <div>
@@ -23,20 +42,28 @@
     <div th:if="${!aiConfigured}" class="alert alert-warning">AI is not configured yet. Set the <code>BOOKNEST_AI_API_KEY</code> environment variable and restart BookNest.</div>
     <div th:if="${chatError}" class="alert alert-danger" role="alert" th:text="${chatError}">Chat request failed.</div>
     <section class="ai-chat-panel" aria-label="Conversation">
-        <div class="ai-chat-empty" th:if="${#lists.isEmpty(messages)}">
-            <strong>Start a conversation</strong>
-            <span>Choose your knowledge mode below (Catalog RAG or General Knowledge) and ask a question!</span>
-        </div>
-        <article class="ai-message" th:each="item : ${messages}" th:classappend="${item.user} ? ' ai-message-user' : ' ai-message-assistant'">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="ai-message-speaker" th:text="${item.speaker}">Assistant</span>
-                <span th:if="${item.ragMode != null and item.ragMode}" class="badge text-bg-primary border border-primary-subtle text-white font-monospace" style="font-size: 0.72rem;">📚 Catalog (RAG ON)</span>
-                <span th:if="${item.ragMode != null and !item.ragMode}" class="badge text-bg-secondary border border-secondary-subtle text-white font-monospace" style="font-size: 0.72rem;">🌐 General (RAG OFF)</span>
+            <div class="ai-chat-messages" id="aiChatMessages" aria-live="polite" aria-relevant="additions text">
+                <div class="ai-chat-empty" th:if="${#lists.isEmpty(messages)}">
+                    <strong>Start a conversation</strong>
+                    <span>Choose your knowledge mode below (Catalog RAG or General Knowledge) and ask a question!</span>
+                </div>
+                <article class="ai-message" th:each="item : ${messages}" th:classappend="${item.user} ? ' ai-message-user' : ' ai-message-assistant'">
+                    <div class="ai-message-header">
+                        <span class="ai-message-speaker" th:text="${item.speaker}">Assistant</span>
+                        <div class="ai-message-meta">
+                            <span th:if="${item.ragMode != null and item.ragMode}" class="ai-mode-badge">Catalog</span>
+                            <span th:if="${item.ragMode != null and !item.ragMode}" class="ai-mode-badge">General</span>
+                            <button th:if="${!item.user}" class="ai-copy-button" type="button" aria-label="Copy response" title="Copy response">
+                                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.5V3.75A1.25 1.25 0 0 1 6.25 2.5h6A1.25 1.25 0 0 1 13.5 3.75v7A1.25 1.25 0 0 1 12.25 12H10"/><rect x="2.5" y="5" width="7.5" height="8.5" rx="1"/></svg>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ai-message-content" th:attr="data-markdown=${!item.user}" th:text="${item.content}">Message</div>
+                </article>
             </div>
-            <p class="m-0" th:text="${item.content}">Message</p>
-        </article>
 
-        <form class="ai-chat-form" th:action="@{/ai/chat}" method="post">
+        <form class="ai-chat-form" id="aiChatForm" th:action="@{/ai/chat}" method="post">
             <!-- Mode Selection Option -->
             <div class="card p-3 mb-3 bg-light border">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
@@ -70,6 +97,7 @@
         </form>
     </section>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function updateModeDesc(isRag) {
         const desc = document.getElementById('modeDescription');
@@ -79,6 +107,113 @@
             desc.innerHTML = '🌐 Freely discussing books and general literature from across the world (RAG OFF).';
         }
     }
+</script>
+<script src="/js/booknest-markdown.js"></script>
+<script th:inline="none">
+    (() => {
+        const renderMarkdown = window.BookNestMarkdown.render;
+
+        document.querySelectorAll('.ai-copy-button').forEach(button => button.addEventListener('click', async () => {
+            const content = button.closest('.ai-message').querySelector('.ai-message-content').innerText;
+            const label = button.querySelector('span');
+            try { await navigator.clipboard.writeText(content); label.textContent = 'Copied'; setTimeout(() => label.textContent = 'Copy', 1400); }
+            catch (_) { label.textContent = 'Unavailable'; setTimeout(() => label.textContent = 'Copy', 1400); }
+        }));
+
+        const form = document.getElementById('aiChatForm');
+        const conversation = document.getElementById('aiChatMessages');
+        if (form && conversation) {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const input = form.querySelector('textarea[name="message"]');
+                const sendButton = form.querySelector('button[type="submit"]');
+                const message = input.value.trim();
+                if (!message || sendButton.disabled) return;
+
+                const useRag = form.querySelector('input[name="useRag"]:checked')?.value !== 'false';
+                const appendMessage = (speaker, content, kind, mode) => {
+                    const article = document.createElement('article');
+                    article.className = `ai-message ai-message-${kind}`;
+                    const header = document.createElement('div');
+                    header.className = 'ai-message-header';
+                    const name = document.createElement('span');
+                    name.className = 'ai-message-speaker';
+                    name.textContent = speaker;
+                    header.append(name);
+                    if (kind === 'assistant') {
+                        const meta = document.createElement('div');
+                        meta.className = 'ai-message-meta';
+                        if (mode) {
+                            const badge = document.createElement('span');
+                            badge.className = 'ai-mode-badge';
+                            badge.textContent = mode;
+                            meta.append(badge);
+                        }
+                        const copy = document.createElement('button');
+                        copy.className = 'ai-copy-button';
+                        copy.type = 'button';
+                        copy.setAttribute('aria-label', 'Copy response');
+                        copy.title = 'Copy response';
+                        copy.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.5V3.75A1.25 1.25 0 0 1 6.25 2.5h6A1.25 1.25 0 0 1 13.5 3.75v7A1.25 1.25 0 0 1 12.25 12H10"/><rect x="2.5" y="5" width="7.5" height="8.5" rx="1"/></svg><span>Copy</span>';
+                        meta.append(copy);
+                        header.append(meta);
+                    }
+                    const body = document.createElement('div');
+                    body.className = 'ai-message-content';
+                    if (kind === 'assistant') {
+                        renderMarkdown(content, body);
+                    } else {
+                        body.textContent = content;
+                    }
+                    article.append(header, body);
+                    conversation.append(article);
+                    article.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    return { article, body };
+                };
+
+                appendMessage('You', message, 'user');
+                const pending = appendMessage('BookNest AI', '', 'assistant', useRag ? 'Catalog' : 'General');
+                pending.article.classList.add('ai-message-pending');
+                pending.body.classList.add('ai-thinking');
+                pending.body.setAttribute('role', 'status');
+                pending.body.setAttribute('aria-label', 'BookNest AI is thinking');
+                pending.body.innerHTML = '<span class="ai-thinking-label">Thinking</span><span class="ai-thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+                input.value = '';
+                sendButton.disabled = true;
+
+                try {
+                    const payload = new URLSearchParams();
+                    payload.set('message', message);
+                    payload.set('useRag', String(useRag));
+                    const csrf = form.querySelector('input[name="_csrf"]');
+                    if (csrf) payload.set('_csrf', csrf.value);
+                    const response = await fetch(new URL('/ai/chat/ask', window.location.origin), {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: payload
+                    });
+                    const result = await response.json();
+                    if (!response.ok || result.error) throw new Error(result.error || 'The request could not be completed.');
+                    pending.body.classList.remove('ai-thinking');
+                    pending.body.removeAttribute('role');
+                    pending.body.removeAttribute('aria-label');
+                    pending.body.replaceChildren();
+                    renderMarkdown(result.answer || 'The AI returned an empty response.', pending.body);
+                    pending.article.classList.remove('ai-message-pending');
+                } catch (error) {
+                    pending.article.classList.remove('ai-message-pending');
+                    pending.body.classList.remove('ai-thinking');
+                    pending.body.removeAttribute('role');
+                    pending.body.removeAttribute('aria-label');
+                    pending.body.textContent = error.message || 'Could not connect to the AI provider. Please try again.';
+                    pending.article.classList.add('ai-message-error');
+                } finally {
+                    sendButton.disabled = false;
+                    input.focus();
+                }
+            });
+        }
+    })();
 </script>
 </body>
 </html>
