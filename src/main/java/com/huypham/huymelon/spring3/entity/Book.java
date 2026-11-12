@@ -43,7 +43,7 @@ public class Book {
 
     @ColumnDefault("1")
     @Column(name = "available", nullable = false)
-    private Boolean available;
+    private Boolean available = true;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "categoryId", nullable = false)

@@ -49,8 +49,7 @@ public class BookService {
                     .append("; Category: ").append(book.getCategory().getName())
                     .append("; ISBN: ").append(book.getIsbn())
                     .append("; Year: ").append(book.getPublishYear() == null ? "unknown" : book.getPublishYear())
-                    .append("; Copies: ").append(book.getQuantity())
-                    .append("; Available: ").append(Boolean.TRUE.equals(book.getAvailable()) ? "yes" : "no").append('\n');
+                    .append("; Copies: ").append(book.getQuantity()).append('\n');
         }
         return context.toString();
     }
@@ -107,7 +106,9 @@ public class BookService {
         book.setId(null);
         book.setOwner(owner);
         book.setCategory(loadCategory(book.getCategoryId()));
-        if (book.getAvailable() == null) book.setAvailable(false);
+        if (book.getAvailable() == null) {
+            book.setAvailable(book.getQuantity() != null && book.getQuantity() > 0);
+        }
         return bookRepository.save(book);
     }
 
@@ -120,7 +121,7 @@ public class BookService {
         book.setCoverImageUrl(changes.getCoverImageUrl());
         book.setSourceUrl(changes.getSourceUrl());
         book.setQuantity(changes.getQuantity());
-        book.setAvailable(Boolean.TRUE.equals(changes.getAvailable()));
+        book.setAvailable(changes.getQuantity() != null && changes.getQuantity() > 0);
         book.setCategory(loadCategory(changes.getCategoryId()));
         return bookRepository.save(book);
     }

@@ -31,9 +31,8 @@
             </div>
             <div class="form-section-label">Collection details</div>
             <div class="row g-3">
-                <div class="col-md-5"><label class="form-label" for="publishYear">Publication year</label><input class="form-control" id="publishYear" type="number" min="0" th:field="*{publishYear}"></div>
-                <div class="col-md-3"><label class="form-label" for="quantity">Copies</label><input class="form-control" id="quantity" type="number" min="0" th:field="*{quantity}" required></div>
-                <div class="col-md-4 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" id="available" type="checkbox" th:field="*{available}"><label class="form-check-label fw-semibold" for="available">Available in my collection</label></div></div>
+                <div class="col-md-6"><label class="form-label" for="publishYear">Publication year</label><input class="form-control" id="publishYear" type="number" min="0" max="2100" placeholder="e.g. 2024" th:field="*{publishYear}"></div>
+                <div class="col-md-6"><label class="form-label" for="quantity">Copies</label><input class="form-control" id="quantity" type="number" min="0" th:field="*{quantity}" required></div>
             </div>
         </div>
         <div class="form-sheet-footer d-flex flex-wrap gap-2"><button class="btn btn-primary px-4" type="submit" th:text="${isNew} ? 'Add to catalog' : 'Save record'">Save record</button><a class="btn btn-light" th:href="@{/book}">Cancel</a></div>

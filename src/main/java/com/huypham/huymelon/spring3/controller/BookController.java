@@ -6,6 +6,7 @@ import com.huypham.huymelon.spring3.service.CategoryService;
 import com.huypham.huymelon.spring3.service.BookService;
 import com.huypham.huymelon.spring3.service.ExternalBookSearchService;
 import com.huypham.huymelon.spring3.service.UserService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -110,7 +111,6 @@ public class BookController {
         book.setCoverImageUrl(coverImageUrl);
         book.setSourceUrl(sourceUrl);
         book.setQuantity(1);
-        book.setAvailable(true);
         model.addAttribute("object", book);
         model.addAttribute("isNew", true);
         model.addAttribute("categories", categoryService.findAll());
@@ -146,9 +146,12 @@ public class BookController {
         }
         try {
             bookService.create(form, currentUser(principal));
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | DataIntegrityViolationException ex) {
             model.addAttribute("isNew", true);
-            model.addAttribute("error", ex.getMessage());
+            String message = ex instanceof DataIntegrityViolationException
+                    ? "Could not save book: database constraint violated (publication year must be 1900 or later)."
+                    : ex.getMessage();
+            model.addAttribute("error", message);
             model.addAttribute("categories", categoryService.findAll());
             return "edit";
         }
@@ -198,10 +201,13 @@ public class BookController {
         }
         try {
             bookService.update(id, form, currentUser(principal));
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | DataIntegrityViolationException ex) {
             form.setId(id);
             model.addAttribute("isNew", false);
-            model.addAttribute("error", ex.getMessage());
+            String message = ex instanceof DataIntegrityViolationException
+                    ? "Could not update book: database constraint violated (publication year must be 1900 or later)."
+                    : ex.getMessage();
+            model.addAttribute("error", message);
             model.addAttribute("categories", categoryService.findAll());
             return "edit";
         }
@@ -234,6 +240,9 @@ public class BookController {
         }
         if (book.getQuantity() == null || book.getQuantity() < 0) {
             return "Copies must be zero or more.";
+        }
+        if (book.getPublishYear() != null && book.getPublishYear() < 0) {
+            return "Publication year must be zero or more (or left blank).";
         }
         if (book.getCategoryId() == null) {
             return "Please select a category.";

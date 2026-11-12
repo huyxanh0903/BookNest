@@ -77,13 +77,13 @@
                     <input type="radio" class="btn-check" name="useRag" id="ragOn" value="true" th:checked="${useRag}" autocomplete="off" onchange="updateModeDesc(true)">
                     <label class="btn btn-outline-primary py-2" for="ragOn">
                         <strong class="d-block">📚 Catalog Mode (RAG ON)</strong>
-                        <span class="small fw-normal text-muted">Chỉ lấy dữ liệu trong hệ thống</span>
+                        <span class="small fw-normal text-muted">Internal catalog data only</span>
                     </label>
 
                     <input type="radio" class="btn-check" name="useRag" id="ragOff" value="false" th:checked="${!useRag}" autocomplete="off" onchange="updateModeDesc(false)">
                     <label class="btn btn-outline-secondary py-2" for="ragOff">
                         <strong class="d-block">🌐 General Knowledge (RAG OFF)</strong>
-                        <span class="small fw-normal text-muted">Chat mở rộng ra bên ngoài</span>
+                        <span class="small fw-normal text-muted">Open general knowledge chat</span>
                     </label>
                 </div>
             </div>

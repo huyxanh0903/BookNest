@@ -117,12 +117,16 @@ public class ExternalBookSearchService {
     }
 
     private Integer year(String publishedDate) {
-        if (publishedDate.length() < 4) return null;
-        try {
-            return Integer.valueOf(publishedDate.substring(0, 4));
-        } catch (NumberFormatException ignored) {
-            return null;
+        if (publishedDate == null || publishedDate.isBlank()) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\b(\\d{4})\\b").matcher(publishedDate);
+        if (matcher.find()) {
+            try {
+                return Integer.valueOf(matcher.group(1));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
         }
+        return null;
     }
 
     public record SearchResult(String title, String author, String isbn,

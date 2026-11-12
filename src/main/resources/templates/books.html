@@ -37,7 +37,7 @@
         <div class="catalog-sheet">
             <div class="catalog-sheet-header d-flex justify-content-between align-items-center"><h2 id="catalogHeading" class="catalog-sheet-title">Catalog index</h2><span class="small text-secondary">Newest record numbers first</span></div>
             <div class="table-responsive"><table class="table table-hover align-middle catalog-table">
-                <thead><tr><th class="ps-3">Record</th><th>Title / author</th><th th:if="${isAdmin}">Owner</th><th>ISBN</th><th>Year</th><th>Copies</th><th>Status</th><th class="text-end pe-3">Actions</th></tr></thead>
+                <thead><tr><th class="ps-3">Record</th><th>Title / author</th><th th:if="${isAdmin}">Owner</th><th>ISBN</th><th>Year</th><th>Copies</th><th class="text-end pe-3">Actions</th></tr></thead>
                 <tbody id="bookRows">
                 <tr th:each="book : ${List}" class="book-row">
                     <td class="ps-3 catalog-id" th:text="${book.id}">1</td>
@@ -46,11 +46,10 @@
                     <td class="record-isbn" th:text="${book.isbn}">978...</td>
                     <td class="catalog-id" th:text="${book.publishYear}">2026</td>
                     <td><span class="record-quantity" th:text="${book.quantity}">10</span></td>
-                    <td><span class="badge rounded-pill" th:classappend="${book.available} ? ' text-bg-success' : ' text-bg-secondary'" th:text="${book.available} ? 'Available' : 'Unavailable'">Available</span></td>
                     <td class="text-end pe-3 record-actions"><div class="d-inline-flex gap-2"><a class="btn btn-sm btn-light" th:href="@{'/book/' + ${book.id}}">View</a><a class="btn btn-sm btn-outline-primary" th:href="@{'/book/edit/' + ${book.id}}">Edit</a><form th:action="@{'/book/' + ${book.id} + '/delete'}" method="post" class="m-0" onsubmit="return confirm('Delete this book from your catalog?')"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div></td>
                 </tr>
-                <tr id="emptyState" th:if="${#lists.isEmpty(List)}"><td th:colspan="${isAdmin} ? 8 : 7" class="empty-state"><strong>Your catalog is empty</strong>Add a book manually or search the online catalog.<div class="d-flex justify-content-center gap-2 mt-3"><a class="btn btn-primary btn-sm" th:href="@{/book/new}">Add a book</a><a class="btn btn-outline-primary btn-sm" th:href="@{/book/search}">Find online</a></div></td></tr>
-                <tr id="noSearchResults" class="d-none"><td th:colspan="${isAdmin} ? 8 : 7" class="empty-state">No records match your search.</td></tr>
+                <tr id="emptyState" th:if="${#lists.isEmpty(List)}"><td th:colspan="${isAdmin} ? 7 : 6" class="empty-state"><strong>Your catalog is empty</strong>Add a book manually or search the online catalog.<div class="d-flex justify-content-center gap-2 mt-3"><a class="btn btn-primary btn-sm" th:href="@{/book/new}">Add a book</a><a class="btn btn-outline-primary btn-sm" th:href="@{/book/search}">Find online</a></div></td></tr>
+                <tr id="noSearchResults" class="d-none"><td th:colspan="${isAdmin} ? 7 : 6" class="empty-state">No records match your search.</td></tr>
                 </tbody>
             </table></div>
             <div class="catalog-footer" th:text="${isAdmin} ? 'Viewing all records across the system (Administrator mode).' : 'Each record belongs to your account.'">Each record belongs to your account.</div>
