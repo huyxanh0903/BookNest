@@ -53,6 +53,7 @@
                         <div class="ai-message-meta">
                             <span th:if="${item.ragMode != null and item.ragMode}" class="ai-mode-badge">Catalog</span>
                             <span th:if="${item.ragMode != null and !item.ragMode}" class="ai-mode-badge">General</span>
+                            <span th:if="${item.modelLabel != null}" class="ai-mode-badge" style="background:var(--bs-green,#198754);color:#fff;" th:text="${item.modelLabel}">Model</span>
                             <button th:if="${!item.user}" class="ai-copy-button" type="button" aria-label="Copy response" title="Copy response">
                                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.5V3.75A1.25 1.25 0 0 1 6.25 2.5h6A1.25 1.25 0 0 1 13.5 3.75v7A1.25 1.25 0 0 1 12.25 12H10"/><rect x="2.5" y="5" width="7.5" height="8.5" rx="1"/></svg>
                                 <span>Copy</span>
@@ -63,50 +64,42 @@
                 </article>
             </div>
 
+
         <form class="ai-chat-form" id="aiChatForm" th:action="@{/ai/chat}" method="post">
-            <!-- Mode Selection Option -->
-            <div class="card p-3 mb-3 bg-light border">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                    <span class="fw-semibold small text-dark">Knowledge Mode:</span>
-                    <span class="small text-muted" id="modeDescription">
-                        <span th:if="${useRag}">📚 Only answering from books in your personal catalog (RAG ON).</span>
-                        <span th:if="${!useRag}">🌐 Freely discussing books and general literature from across the world (RAG OFF).</span>
-                    </span>
-                </div>
-                <div class="btn-group w-100" role="group" aria-label="RAG Mode Selector">
-                    <input type="radio" class="btn-check" name="useRag" id="ragOn" value="true" th:checked="${useRag}" autocomplete="off" onchange="updateModeDesc(true)">
-                    <label class="btn btn-outline-primary py-2" for="ragOn">
-                        <strong class="d-block">📚 Catalog Mode (RAG ON)</strong>
-                        <span class="small fw-normal text-muted">Internal catalog data only</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="useRag" id="ragOff" value="false" th:checked="${!useRag}" autocomplete="off" onchange="updateModeDesc(false)">
-                    <label class="btn btn-outline-secondary py-2" for="ragOff">
-                        <strong class="d-block">🌐 General Knowledge (RAG OFF)</strong>
-                        <span class="small fw-normal text-muted">Open general knowledge chat</span>
-                    </label>
-                </div>
-            </div>
-
             <label class="form-label fw-semibold" for="message">Your message</label>
             <textarea class="form-control" id="message" name="message" rows="3" maxlength="4000" placeholder="Type a message..." required></textarea>
-            <div class="d-flex justify-content-between align-items-center gap-3 mt-2">
-                <span class="form-text">Up to 4,000 characters</span>
-                <button class="btn btn-primary px-4" type="submit" th:disabled="${!aiConfigured}">Send message <span aria-hidden="true">→</span></button>
+
+            <!-- Minimal toolbar below textarea -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+                <!-- Left: pill toggles -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- RAG toggle -->
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Knowledge mode">
+                        <input type="radio" class="btn-check" name="useRag" id="ragOn" value="true" th:checked="${useRag}" autocomplete="off">
+                        <label class="btn btn-outline-secondary rounded-start-pill px-3" for="ragOn" title="Catalog Mode — answers only from your personal book catalog">📚 Catalog</label>
+                        <input type="radio" class="btn-check" name="useRag" id="ragOff" value="false" th:checked="${!useRag}" autocomplete="off">
+                        <label class="btn btn-outline-secondary rounded-end-pill px-3" for="ragOff" title="General Knowledge — open discussion about all books and literature">🌐 General</label>
+                    </div>
+
+                    <!-- Model toggle -->
+                    <div class="btn-group btn-group-sm" role="group" aria-label="AI model">
+                        <input type="radio" class="btn-check" name="useFallback" id="modelPrimary" value="false" th:checked="${!useFallback}" autocomplete="off">
+                        <label class="btn btn-outline-secondary rounded-start-pill px-3" for="modelPrimary"
+                               th:title="'Primary model: ' + ${primaryModelLabel}" th:text="${primaryModelLabel}">Model A</label>
+                        <input type="radio" class="btn-check" name="useFallback" id="modelFallback" value="true" th:checked="${useFallback}" autocomplete="off">
+                        <label class="btn btn-outline-secondary rounded-end-pill px-3" for="modelFallback"
+                               th:title="'Fallback model: ' + ${fallbackModelLabel}" th:text="${fallbackModelLabel}">Model B</label>
+                    </div>
+                </div>
+
+                <!-- Right: Send button -->
+                <button class="btn btn-primary px-4" type="submit" th:disabled="${!aiConfigured}">Send <span aria-hidden="true">→</span></button>
             </div>
         </form>
     </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function updateModeDesc(isRag) {
-        const desc = document.getElementById('modeDescription');
-        if (isRag) {
-            desc.innerHTML = '📚 Only answering from books in your personal catalog (RAG ON).';
-        } else {
-            desc.innerHTML = '🌐 Freely discussing books and general literature from across the world (RAG OFF).';
-        }
-    }
 </script>
 <script src="/js/booknest-markdown.js"></script>
 <script th:inline="none">
@@ -131,6 +124,7 @@
                 if (!message || sendButton.disabled) return;
 
                 const useRag = form.querySelector('input[name="useRag"]:checked')?.value !== 'false';
+                const useFallback = form.querySelector('input[name="useFallback"]:checked')?.value === 'true';
                 const appendMessage = (speaker, content, kind, mode) => {
                     const article = document.createElement('article');
                     article.className = `ai-message ai-message-${kind}`;
@@ -172,6 +166,7 @@
                 };
 
                 appendMessage('You', message, 'user');
+                const modelBadge = useFallback ? '🔄 Fallback' : '🤖 Primary';
                 const pending = appendMessage('BookNest AI', '', 'assistant', useRag ? 'Catalog' : 'General');
                 pending.article.classList.add('ai-message-pending');
                 pending.body.classList.add('ai-thinking');
@@ -185,6 +180,7 @@
                     const payload = new URLSearchParams();
                     payload.set('message', message);
                     payload.set('useRag', String(useRag));
+                    payload.set('useFallback', String(useFallback));
                     const csrf = form.querySelector('input[name="_csrf"]');
                     if (csrf) payload.set('_csrf', csrf.value);
                     const response = await fetch(new URL('/ai/chat/ask', window.location.origin), {
